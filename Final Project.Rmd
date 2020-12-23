@@ -1,0 +1,717 @@
+---
+title: 'Moving the Chains:'
+author: "Colin Conant"
+date: "December 22nd, 2020"
+output:
+  pdf_document: default
+  html_document: default
+subtitle: How Play Choice Impacts Third Down Conversion Efficiency in the NFL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(readr)
+library(knitr)
+library(car)
+library(survey)
+
+
+## NOTE: Please adjust lines 536, 540, 544, and 631 to your personal path to the images listed in the line of code. All 4 images are provided in the github repo on line 92.
+
+
+
+## Reading in the csv files
+
+#playoff files
+fp2009 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/post_season/post_pbp_2009.csv"
+fp2010 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/post_season/post_pbp_2010.csv"
+fp2011 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/post_season/post_pbp_2011.csv"
+fp2012 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/post_season/post_pbp_2012.csv"
+fp2013 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/post_season/post_pbp_2013.csv"
+fp2014 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/post_season/post_pbp_2014.csv"
+fp2015 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/post_season/post_pbp_2015.csv"
+fp2016 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/post_season/post_pbp_2016.csv"
+fp2017 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/post_season/post_pbp_2017.csv"
+fp2018 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/post_season/post_pbp_2018.csv"
+fp2019 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/post_season/post_pbp_2019.csv"
+
+#regular season files
+f2009 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/regular_season/reg_pbp_2009.csv"
+f2010 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/regular_season/reg_pbp_2010.csv"
+f2011 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/regular_season/reg_pbp_2011.csv"
+f2012 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/regular_season/reg_pbp_2012.csv"
+f2013 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/regular_season/reg_pbp_2013.csv"
+f2014 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/regular_season/reg_pbp_2014.csv"
+f2015 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/regular_season/reg_pbp_2015.csv"
+f2016 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/regular_season/reg_pbp_2016.csv"
+f2017 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/regular_season/reg_pbp_2017.csv"
+f2018 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/regular_season/reg_pbp_2018.csv"
+f2019 = "https://raw.githubusercontent.com/ryurko/nflscrapR-data/master/play_by_play_data/regular_season/reg_pbp_2019.csv"
+
+## Reaading the csv files into datasets
+#playoff data
+dp2009 <-read_csv(url(fp2009))
+dp2010 <-read_csv(url(fp2010))
+dp2011 <-read_csv(url(fp2011))
+dp2012 <-read_csv(url(fp2012))
+dp2013 <-read_csv(url(fp2013))
+dp2014 <-read_csv(url(fp2014))
+dp2015 <-read_csv(url(fp2015))
+dp2016 <-read_csv(url(fp2016))
+dp2017 <-read_csv(url(fp2017))
+dp2018 <-read_csv(url(fp2018))
+dp2019 <-read_csv(url(fp2019))
+
+#regular season data
+d2009 <-read_csv(url(f2009))
+d2010 <-read_csv(url(f2010))
+d2011 <-read_csv(url(f2011))
+d2012 <-read_csv(url(f2012))
+d2013 <-read_csv(url(f2013))
+d2014 <-read_csv(url(f2014))
+d2015 <-read_csv(url(f2015))
+d2016 <-read_csv(url(f2016))
+d2017 <-read_csv(url(f2017))
+d2018 <-read_csv(url(f2018))
+d2019 <-read_csv(url(f2019))
+
+#creating a combined dataset
+complete_data <- rbind(d2009, d2010, d2011, d2012, d2013, d2014, d2015, d2016, d2017, d2018, d2019)
+complete_data <- rbind(complete_data, dp2009, dp2010, dp2011, dp2012, dp2013, dp2014, dp2015, dp2016, dp2017, dp2018)
+
+predict_data <- read_csv("C:/Users/colin/OneDrive/Documents/School/Sta304/final data.csv")
+predict_data %>% rename("IsPass" = X24)
+```
+
+
+Data & Code available at the Github repository: https://github.com/conant2/304-Final-Project-Conant.git
+
+
+
+# Abstract
+
+  In this analysis of American Football, using 10+ years of National Football League play-by-play data, multiple logistic regression and simple logistic regression models were used to analyze if different play types have significant impact on converting a third down. After running the model on all third downs, as well as on specific scenarios depending on yards needed to convert and field position, it was found that play type choice was significant in influencing the probability of converting a third down. Run plays were found to be more successful in short situations, pass plays were more successful in medium and long situations, and plays ran toward the middle of the field were the most successful in all situations. The predicted models were then compared to 2020 data, where it was predicted that if 2020 teams ran the best plays from the model analysis, the overall league third down percentage would increase by approximately 10%. This is quite notable in American Football, as third down percentage is a crucial metric for a team's offensive success, and can greatly influence the outcome of a football game, so finding these areas of improvement could increase a team's probability of success.    
+
+
+# Keywords 
+Logistic Regression, Ratio Estimation, Frequentist, Football, Ratio Comparison, NFL, Observational Study
+
+
+# Introduction 
+Sports Analytics is rapidly emerging as another field of application for Statistics and Data Science. Years of observational data are available across many sports, leagues, and tournaments. Coaches, executives, and players have all begun to turn towards analytics as a method of gaining a competitive edge. 
+
+One of the ways to gain an advantage over your opponent in American Football is to have a potent and efficient offense. In American football, a team’s offense is given four plays, called downs, to gain a certain number of yards, the default being 10. Each play, an offense may gain or lose yards, changing the down and distance. For example, if a team runs a play on First down and 10 yards to go, and gain 3 yards, they are now 7 yards away from converting, so it would be considered Second Down and 7 yards to go. If an offense gains 10 yards before they run out of chances, it is considered a successful conversion of downs, and they will keep the ball and get another four chances to gain 10 yards from their new spot. However, if a team’s offense fails to get a new set of downs and uses all their chances, they must give the ball to the other team’s defense at the spot that they failed, the line of scrimmage (See Appendix 1). Teams instead typically choose to use a special play, called a punt, on 4th down if they have not already gained the yards needed to gain a new set of downs. This gives the ball away to the other team, but at a much greater distance. Consequently, 3rd downs become the critical down to gain the number of yards needed, or the team will likely have to relinquish possession of the ball. 
+
+
+In this analysis, I will be using 11 years of National Football League (NFL) regular season and playoff play-by-play data, gathered from the github repository nflscrap-R (Yurko, 2020) to evaluate if play choice can help predict if a 3rd down play will be successful in gaining a new set of downs. To best model this, I will use a frequentist multiple logistic regression model to evaluate significant predictors of third down conversion. Then, a second simple logistic regression model will used to evaluate detailed play choices in various common football scenarios, based on the yards required to convert, and position on the field. Finally, the findings of these models will be compared to the current 2020 NFL season third down efficiency to visualize how 2020 is under or over performing the predictions from the model. 
+
+
+```{r, echo=FALSE}
+#Filtering for viable 3rd down plays
+third_downs <- complete_data %>% filter(complete_data$down == 3)
+third_downs <- third_downs%>%
+  filter(yards_gained >= 0 | yards_gained < 0)%>%
+  filter(penalty == 0)%>%
+  filter(play_type == "run" | play_type == "pass")
+
+# 2020 data filtering
+predict_third <- predict_data %>% filter(predict_data$Down == 3)
+predict_third  <- predict_third%>%
+  filter(IsPenalty == 0)%>%
+  filter(PlayType == "RUSH" | PlayType == "PASS")%>%
+  filter(SeasonYear == 2020)
+  
+
+
+#Creating new variables
+third_downs <- third_downs%>%
+  mutate(pass_type = ifelse(pass_length == "deep" & pass_location == "right", "Pass - deep right",
+                            ifelse(pass_length == "deep" & pass_location == "left", "Pass - deep left", 
+                                   ifelse(pass_length == "deep" & pass_location == "middle", "Pass - deep middle", 
+                                          ifelse(pass_length == "short" & pass_location == "right", "Pass - short right", 
+                                                 ifelse(pass_length == "short" & pass_location == "left", "Pass - short left", 
+                                                        ifelse(pass_length == "short" & pass_location == "middle", "Pass - short middle", "")))))))
+
+third_downs <- third_downs%>%
+  mutate(run_type = ifelse(run_location == "left", "Run - left",
+                           ifelse(run_location == "middle", "Run - middle",
+                                  ifelse(run_location == "right", "Run - right", " "))))
+
+third_downs <- third_downs%>%
+  mutate(play_options = ifelse(play_type == "run", run_type, pass_type))
+
+third_downs <- third_downs%>%
+  mutate(pos_leading = ifelse(score_differential_post > 0, "leading", "behind"))
+third_downs <- third_downs%>%
+  mutate(territory = ifelse(yardline_100 < 50, "Opponent", "Own"))
+
+
+
+# 2020 data variable creation
+predict_third  <- predict_third %>%
+  mutate(pass_type = ifelse(PassType == "DEEP RIGHT", "Pass - deep right",
+                            ifelse(PassType == "DEEP LEFT", "Pass - deep left", 
+                                   ifelse(PassType==  "DEEP MIDDLE" , "Pass - deep middle", 
+                                          ifelse(PassType ==  "SHORT RIGHT", "Pass - short right", 
+                                                 ifelse(PassType == "SHORT LEFT", "Pass - short left", 
+                                                        ifelse(PassType == "SHORT MIDDLE", "Pass - short middle", "")))))))
+
+
+predict_third <- predict_third%>%
+  mutate(run_type = ifelse(RushDirection == "LEFT GUARD" | RushDirection == "LEFT TACKLE" | RushDirection == "LEFT END", "Run - left",
+                           ifelse(RushDirection == "CENTER", "Run - middle",
+                                  ifelse(RushDirection == "RIGHT GUARD" | RushDirection == "RIGHT TACKLE" | RushDirection == "RIGHT END", "Run - right", " "))))
+
+predict_third <- predict_third%>%
+  mutate(play_options = ifelse(PlayType == "RUSH", run_type, pass_type))
+
+
+
+
+### DATASET CREATION: creation of data subsets for different scenarios
+
+
+#Third and short
+Short_third <- third_downs %>% filter(ydstogo <= 4)
+
+Short_Opp <- Short_third %>% filter( yardline_100 < 50)
+
+Short_Own <- Short_third %>% filter(yardline_100 >= 50)
+
+#Third and medium
+
+Medium_third <- third_downs %>% filter(ydstogo > 4 & ydstogo < 10)
+
+Medium_Opp <- Medium_third %>% filter(yardline_100 < 50)
+
+Medium_Own <- Medium_third %>% filter(yardline_100 >= 50)
+
+#Third and Long
+Long_third <- third_downs %>% filter(ydstogo >= 10)
+
+Long_Opp <- Long_third %>% filter(yardline_100 < 50)
+
+Long_Own <- Long_third %>% filter(yardline_100 >= 50)
+```
+# Methodology
+## Data
+  The data used in this analysis consists two data sets. The first data set used to create the model consists of 519520 plays, recording 256 variables of NFL play-by-play data from 2009-2019. Play-by-Play data gives details on what happened on each play as well as the results. This data was gathered by Ron Yurko (ryurko) in repository nflscrap-R on Github by using a web scraper on the official NFL.com data pages for the detailed play-by-play data. The second data set is used to compare the model results to the ongoing 2020 NFL season. This data was collected from Daren Willman of NFLsavant.com, who in turn, also gathered it from data provided publicly by the NFL. NFL.com uses official data recorders as well as film evaluation to record the data and post them to their website.
+  
+  
+  Since this analysis is focused on third downs, the model data set was filtered for third downs only, which greatly reduces the data. As well, third downs with penalties had to be removed, as those plays do not count, and the penalty indicates that there was an illegal influence of the play itself. A number of play types had to be removed, as they were special teams plays or clock management plays. These plays are not designed with the objective to gain a first down, and therefore are not relevant for the analysis. The remaining data consists of 75755 third downs. The 2020 data set followed the same filtration process, and the data remaining consists of 4119 third downs. 
+  
+  
+  The target population for this analysis is all third downs in NFL history, the frame population is all NFL plays from 2009-2019, and the sample is the 75755 third downs derived from the original model data set through the filtration process mentioned above.
+  
+  
+  While the model data set had 256 variables recorded, only a number were relevant for this analysis. The variables of interest included: third_down_converted -  if the third down play resulted in a first down, ydstogo - Yards needed for a first down, yardline_100 - How many yards needed to score a touchdown, play_type - if the play was run or pass, run_location - the direction a running play went, pass_location - the direction a pass play went, and pass_length - how deep the pass went (short or deep). A new variable called play_options was created, combining run_location, pass_location, and pass_length, to create 9 unique play types that indicate the style and direction of a play and is used for the rest of the analysis. As well, the variables that could be used were limited, as there must have been common variables between the model data set and the 2020 data set in order to make any fair comparisons between both data sets.
+
+  
+  To assist in modeling the data, subsets of the data called short, medium, and long were created based on the ydstogo variable. Third & Short scenarios are third downs where the yards required to convert are 4 or less. Third & Medium scenarios are third downs where the yards required to convert are between 5 and 9. Third & Long scenarios are third downs where the yards required to convert are 10 or more. These scenarios were chosen because third downs are coloquially referred to as short, medium, and long based on distance to convert in the NFL. These subsets were then split again using the yardline_100 variable to indicate whether the play occurred in the team's own territory, or opponents territory. A scenario is considered the offense's own territory if they are 50 or more yards from the opponent's endzone. A scenario is considered the offense's opponent's territory if the offensive team is 49 or less yards from the opponent's endzone. This resulted in 6 subsets of data: Short Own(13374 third downs), Short Opponents(13129 third downs), Medium Own(15685 third downs), Medium Opponents(12105 third downs), Long own(13793 third downs), and Long Opponents(7669 third downs).  
+  
+
+
+```{r, echo =FALSE, out.width = "90%", fig.cap= "NFL Third Downs by Field Position"}
+
+territoryhist <- ggplot(data=third_downs, aes(x=yardline_100))+
+                     geom_histogram(breaks = seq(0, 100, by = 5), color = "black", fill = "forest green", na.rm = TRUE)+
+  labs(title="Third Downs by Side of the Field", x = "Yards from Opponent's Endzone")+
+  geom_vline(xintercept = 50, linetype="dashed", 
+                color = "firebrick3", size=2)+
+  annotate(geom="text", x=25, y=4800, label="Opponent",
+              color="firebrick3")+
+  annotate(geom="text", x=87, y=4800, label="Own",
+              color="firebrick3")
+territoryhist
+
+
+```
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+
+```{r, echo =FALSE, fig.cap= "NFL Third Downs by Conversion Distance"}
+yardshist <- ggplot(data=third_downs, aes(x= ydstogo))+
+                     geom_histogram(breaks=seq(0.1,35, by = 1), color = "black", fill =" forest green")+
+  geom_vline(xintercept = 4, linetype="dashed", 
+                color = "firebrick3", size=2)+
+  geom_vline(xintercept = 9, linetype="dashed", 
+                color = "firebrick3", size=2)+
+  annotate(geom="text", x=1.75, y=9000, label="Short",
+              color="firebrick3")+
+  annotate(geom="text", x=6.5, y=7500, label="Medium",
+              color="firebrick3")+
+  annotate(geom="text", x=15, y=6000, label="Long",
+              color="firebrick3")+
+  labs(title="Third Downs by Yards Needed For a First Down", x = "Yards Needed")
+
+
+yardshist
+```
+
+
+
+Figures 1 shows the distribution of third downs in the data set based on the offense's distance from the opposing endzone.
+Figure 2 shows the distribution of third downs in the data set based on the yards needed to convert. 
+
+
+## Models
+To best evaluate whether a third down will be converted, I used a few models. The first model I used to predict third down success rates was a frequentist multiple logistic regression model, created in R, utilizing the data set provided by nflscrap-R (Yurko, 2020). The purpose of this general model is to examine if position on the field, yards needed for a first down, and different general play types are significant in predicting if a third down attempt will be successful. 
+
+
+  A multiple logistic regression is the most appropriate in this situation because the response variable, third_down_converted, is a binary outcome; either the offense gained enough yards to get a new set of downs, or they did not. As well, a frequentist approach is appropriate, as no assumptions were made about the previous distribution of the data set. The model must be also be multiple logistic regression rather than simple logistic regression or multiple linear regression, as it requires multiple explanatory variables to explore a binary outcome. Additionally, a causal inference using propensity score matching was not appropriate for this analysis, as the treatment of interest for the full report would have been play_options, which is a nine option dummy variable, and therefore not binary. It would also not be appropriate to use run/pass as the treatment of interest as that would diminish the scope of the analysis dramatically by limiting 9 play types to 2.  
+  
+  
+  Finally, to use a multiple logistic model, it must satisfy the 4 assumptions of logistic regression. The model has a binary response variable (third_down_converted), a linear relationship with the logit function, every observation is independent of each other, and there must not be evidence of multicollinearity in the predictor variables, which is verifiable by the VIF values are less than 1.12 which is much less than the common cutoff of 5. Therefore since all of the multiple logistic regression model assumptions are fulfilled, using this model is a viable approach. 
+
+
+Equation 1: General Model
+
+$$log(\frac{{p_{converted}}}{1-{p_{converted}}}) = \beta_0+\beta_1  x_{yardline}+\beta_2 x_{yards needed}+\beta_3 x_{run} +\epsilon$$
+
+
+  The General Model is represented by Equation 1. On the left side of the equation is the logit function representing the log odds of p, which is the probability of successfully converting a third down. On the right side of the model equation are the betas. Beta 0 represents the intercept term for the model. Beta 1 represents the estimated change in the log odds of converting a third down for every unit change in field position (yardline_100) given everything else constant. Beta 2 represents the estimated change in the log odds of converting a third down for every unit change in yards needed for a first down (ydstogo) given everything else constant. Beta 3 is a dummy variable for the type of play (play_type) that represents the estimated change in the log odds of converting a third down if the play is a run compared to the intercept value, which assumes the play is a pass, given everything else constant. Epsilon represents the error term in the model equation. These variables are included because they all give specific details of the location and type of a play. Time of game and length of play are not relevant to the location of a play and therefore these variables or other variables of this nature were not included in the analysis.
+
+
+The second model I used in the analysis was a simple logistic regression model, created in R, to evaluate third down success (third_down_converted) in relation to more detailed play types (play_options). This model was applied 6 times using the data set of third downs provided by nflscrap-R. The models were applied on 6 subsets of data I created based on various scenarios(Short Own, Short Opponents, Medium Own, Medium Opponents, Long own, and Long Opponents) (Yurko, 2020). The purpose of this model is to evaluate if there are significant differences in probability of converting a third down based on which play type is used in different, commonly occurring, scenarios. 
+
+
+  This simple logistic regression model is appropriate as there is one predictor(play_options), for a binary outcome variable (third_down_converted). Since the outcome variable is binary, and the explanatory variable is not, neither simple/multiple linear regression, nor propensity score analysis, are appropriate to model the effect of play choice on third down conversion rate in this analysis. 
+  
+  
+  A simple logistic model requires that a few assumptions be met, similar to multiple logistic regression. The first assumption of a linear relationship between the logit function and the explanatory variables is satisfied by Equation 2. The assumption of independent observations is satisfied, and the response variable has a binary outcome. 
+  
+
+Equation 2: Play Option Model
+
+$$log(\frac{{p_{converted}}}{1-{p_{converted}}}) = \beta_0 + \beta_1 x_{PDmid} + \beta_2 x_{PDright} + \beta_3 x_{PSleft} +\beta_4 x_{PSmid} $$
+$$+\beta_5 x_{PSright} +\beta_6 x_{Rleft} +\beta_7 x_{Rmid} + \beta_8 x_{Rright} + \epsilon$$
+
+  The Play Option Model is represented by Equation 2. On the left side of the equation is the logit function representing the log odds of p, which is the probability of successfully converting a third down. On the right side of the model equation are the betas. Beta 0 represents the intercept term for the model. Betas 1 through 8 are dummy variables of the type of play that can be run (play_options). If the play type for an observation is the same as one of the betas, then that beta is multiplied by one, and the other betas are multiplied by 0. The given betas represent the estimated change in the log odds of converting a third down if the respective play type is the same as the observation. The plays are represented in order: Pass - Deep Middle, Pass - Deep Right, Pass - Short Left, Pass - Short Middle, Pass - Short Right, Run - Left, Run - Middle, Run - Right. The intercept assumes that the play type is a Pass - Deep Left. Epsilon represents the error term in the function.
+
+
+## Ratio Estimation and Comparison
+
+
+  After the models are created, the probability of each model's best play for each scenario will be compared to the current 2020 NFL season's overall third down percentage by weighting by scenario. Using R software, the models mentioned above will predict the best play in each scenario, which in turn provides the highest probability of success in each scenario. For each scenario, the highest estimated probability will be multiplied by the amount of occurrences of that scenario so far in 2020. These numbers will be added and divided by the total number of third downs in the 2020 NFL season so far. This will provide the highest predicted third down percentage that could have been obtained on average so far this NFL season. Then using ratio estimation (see Equation 3) the overall third down percentage in 2020 will be calculated, and then subtracted from the weighted prediction in order to derive the predicted overall increase in third down conversion efficiency. A ratio estimation method is appropriate as the all-time historical NFL third down conversion rate is not provided, so to get an idea of the true value, a ratio of successful third down conversions per third down attempt for our 11 year sample is the best method for estimation of true value.   
+  
+Equation 3: Ratio Estimation
+
+$$\hat{R} = \frac{\sum y} {\sum x}$$
+  In Equation 3, R hat represents the estimated third down conversion efficiency ratio. The variable y represents the number of successful third down conversions in the NFL in 2020, and x represents the number of third down conversion attempts in the NFL in 2020. Equation 3 will be applied to the overall model, as well as each of the scenarios.
+  
+  
+```{r, include=FALSE}
+### MODEL CREATION: creation of model based on the data subsets
+
+#Base models
+model <- glm(third_down_converted ~  yardline_100 + ydstogo + play_type, data = third_downs, family = "binomial")
+summary(model)
+
+Overallmodel <-glm(third_down_converted ~ as.factor(play_options), data = third_downs, family = "binomial")
+summary(Overallmodel)
+
+#Calculating the Variance Inflation Factors for the general model to check for multicollinearity
+vif(model, data=third_downs)
+```
+
+```{r, include=FALSE}
+## FIELD POSITION MODELS
+
+#Opponent's Territory models
+ShortOppmodel <- glm(third_down_converted ~as.factor(play_options), data = Short_Opp, family = "binomial")
+summary(ShortOppmodel)
+
+MediumOppmodel <- glm(third_down_converted ~ as.factor(play_options), data = Medium_Opp, family = "binomial")
+summary(MediumOppmodel)
+
+LongOppmodel <- glm(third_down_converted ~ as.factor(play_options), data = Long_Opp, family = "binomial")
+summary(LongOppmodel)
+
+
+#Own Territory models
+ShortOwnmodel <- glm(third_down_converted ~ as.factor(play_options), data = Short_Own, family = "binomial")
+summary(ShortOwnmodel)
+
+MediumOwnmodel <- glm(third_down_converted ~ as.factor(play_options), data = Medium_Own, family = "binomial")
+summary(MediumOwnmodel)
+
+LongOwnmodel <- glm(third_down_converted ~ as.factor(play_options), data = Long_Own, family = "binomial")
+summary(LongOwnmodel)
+
+```
+
+
+```{r, include = FALSE}
+
+### Calculation of 2020 ratios
+
+#Third and short
+Short_third_predict <- predict_third %>% filter(ToGo <= 4)
+
+Short_Opp_predict <- Short_third_predict %>% filter( YardLine < 50)
+
+Short_Own_predict <- Short_third_predict %>% filter(YardLine >= 50)
+
+#Third and medium
+
+Medium_third_predict <- predict_third %>% filter(ToGo > 4 & ToGo < 10)
+
+Medium_Opp_predict <- Medium_third_predict %>% filter(YardLine < 50)
+
+Medium_Own_predict <- Medium_third_predict %>% filter(YardLine >= 50)
+
+#Third and Long
+Long_third_predict <- predict_third %>% filter(ToGo >= 10)
+
+Long_Opp_predict <- Long_third_predict %>% filter(YardLine < 50)
+
+Long_Own_predict <- Long_third_predict %>% filter(YardLine >= 50)
+
+
+# Ratio estimation 
+
+# 2020 overall 3rd down percentage
+#sum(predict_third$SeriesFirstDown) / length(predict_third$play_options)
+
+
+#predict_third <- predict_third %>% mutate(IsPlay = 1) 
+#ratiodesign <- svydesign(id=~1, data=predict_third) #, fpc=fpc.srs)
+
+#svyratio(~SeriesFirstDown, ~IsPlay, 
+#        design=ratiodesign)
+
+#Confidence interval calculation
+lowerbound <- 0.4654042 - qnorm(0.975) * 0.00777293
+lowerbound
+upperbound <- 0.4654042 + qnorm(0.975) * 0.00777293
+upperbound
+
+# The 2020 Scenario ratio estimations
+sum(Short_Own_predict$SeriesFirstDown) / length(Short_Own_predict$play_options) * 100
+sum(Short_Opp_predict$SeriesFirstDown) / length(Short_Opp_predict$play_options) * 100
+sum(Medium_Own_predict$SeriesFirstDown) / length(Medium_Own_predict$play_options) * 100
+sum(Medium_Opp_predict$SeriesFirstDown) / length(Medium_Opp_predict$play_options)* 100
+sum(Long_Own_predict$SeriesFirstDown) / length(Long_Own_predict$play_options) * 100
+sum(Long_Opp_predict$SeriesFirstDown) / length(Long_Opp_predict$play_options)* 100
+
+# Calculating difference between model estimates and 2020 ratio estimates in each scenario
+(0.6932 - sum(Short_Own_predict$SeriesFirstDown) / length(Short_Own_predict$play_options)) * 100
+(0.6438 - sum(Short_Opp_predict$SeriesFirstDown) / length(Short_Opp_predict$play_options)) * 100
+(0.5033 - sum(Medium_Own_predict$SeriesFirstDown) / length(Medium_Own_predict$play_options)) * 100
+(0.4706 - sum(Medium_Opp_predict$SeriesFirstDown) / length(Medium_Opp_predict$play_options))* 100
+(0.4368 - sum(Long_Own_predict$SeriesFirstDown) / length(Long_Own_predict$play_options)) * 100
+(0.52982 - sum(Long_Opp_predict$SeriesFirstDown) / length(Long_Opp_predict$play_options))* 100
+
+
+# 2020 overall 3rd down percentage if the most efficient plays estimated by the model were always used in their respective scenario
+(0.6932 * length(Short_Own_predict$play_options) + 0.6438 * length(Short_Opp_predict$play_options)+ 0.5033 * length(Medium_Own_predict$play_options)+ 0.4706 * length(Medium_Opp_predict$play_options) + 0.4368 * length(Long_Own_predict$play_options) + 0.52982 * length(Long_Opp_predict$play_options)) / length(predict_third$play_options)
+
+# Estimated Improvement calculation by using plays from model in their respective scenarios
+(0.6932 * length(Short_Own_predict$play_options) + 0.6438 * length(Short_Opp_predict$play_options)+ 0.5033 * length(Medium_Own_predict$play_options)+ 0.4706 * length(Medium_Opp_predict$play_options) + 0.4368 * length(Long_Own_predict$play_options) + 0.52982 * length(Long_Opp_predict$play_options)) / length(predict_third$play_options) - sum(predict_third$SeriesFirstDown) / length(predict_third$play_options)
+
+```
+
+
+# Results
+After applying and fitting the General Model, all predictors had p-values <2.2*10^-16 and after inserting the estimates of the coefficients, Equation 1 became:
+  
+$$log(\frac{{p_{converted}}}{1-{p_{converted}}}) = 0.3658760 + 0.0036934  x_{yardline} - 0.1567605 x_{yards needed}+ 0.2013026 x_{run} +\epsilon$$
+
+
+Table 1 shows the values of the coefficients and Table 2 shows the respective p-values as estimated by the model for Equation 2 for the 6 scenario subsets: 
+
+
+```{r, echo=FALSE}
+Dataset <- c("Overall", "Short Own", "Short Opp.", "Medium Own", "Medium Opp.", "Long Own", "Long Opp.")
+
+Beta0 <- c("-0.6575", "-4183", "-0.6884", "-0.5412", "-0.8401", "-0.6694", "-0.8402")
+Beta_0 <- c("< 0.01", "< 0.01", "< 0.01", "< 0.01", "< 0.01", "< 0.01", "< 0.01")
+
+Beta1 <- c("0.4156", "0.251", "0.1920", "0.5546", "0.5470", "0.4153", "0.3104")
+Beta_1 <- c("< 0.01", "0.192", "0.402", "< 0.01", "< 0.01", "< 0.01", "0.027") 
+
+Beta2<- c("0.0665", "0.0690", "0.2447", "0.0895","0.1188", "0.0113", "-0.0937")
+Beta_2 <- c("0.16", "0.603", "0.120", "0.34", "0.33", "0.905", "0.490")
+
+Beta3<- c("0.2288", "0.7180", "0.8171","0.3048", "0.3800", "-0.8747", "-0.5431")
+Beta_3 <- c("< 0.01", "< 0.01", "< 0.01", "< 0.01", "< 0.01", "< 0.01", "< 0.01")
+
+Beta4<- c("0.4152", "0.8830", "1.0374", "0.5295", "0.7222", "-0.5227", "-0.3027")
+Beta_4 <- c("< 0.01", "< 0.01", "< 0.01", "< 0.01", "< 0.01", "< 0.01", "< 0.01")
+
+Beta5<- c("0.1911","0.7160", "0.7692", "0.1606", "0.3398", "-0.8250", "-0.6456")
+Beta_5 <- c("< 0.01", "< 0.01", "< 0.01", "0.03", "< 0.01", "< 0.01", "< 0.01")
+
+Beta6<- c("0.6888", "1.081", "1.1569", "0.3890", " 0.2530", "-0.9614", "-0.7386")
+Beta_6 <- c("< 0.01", "< 0.01", "< 0.01", "< 0.01", "0.0499", "< 0.01", "< 0.01")
+
+Beta7<- c("0.7565","1.2330", "1.2801", "0.0892", "0.2770", "-1.3352", "-0.8944")
+Beta_7 <- c("< 0.01", "< 0.01", "< 0.01", "0.458", "0.038", "< 0.01", "< 0.01")
+
+Beta8<- c("0.6859", "1.121", "1.1693", "0.1521", "0.2253", "-1.2744", "-0.7086")
+Beta_8 <- c("< 0.01", "< 0.01", "< 0.01", "0.180", "0.086", "< 0.01", "< 0.01")
+
+
+modeltable1 <- tibble(Dataset, Beta0, Beta1, Beta2, Beta3, Beta4, Beta5, Beta6, Beta7, Beta8)
+Models_table1 <- kable(modeltable1, caption = "Coefficient Estimates for Equation 2", booktabs = T, col.names = c("Dataset", "Beta 0", "Beta 1", "Beta 2", "Beta 3", "Beta 4", "Beta 5", "Beta 6", "Beta 7", "Beta 8"))
+Models_table1
+
+modeltable2 <- tibble(Dataset, Beta_0, Beta_1, Beta_2, Beta_3, Beta_4, Beta_5, Beta_6, Beta_7, Beta_8)
+Models_table2 <- kable( modeltable2, caption = "P-values of the Coefficient Estimates for Equation 2 ", booktabs = T, col.names = c("Dataset", "Beta 0", "Beta 1", "Beta 2", "Beta 3", "Beta 4", "Beta 5", "Beta 6", "Beta 7", "Beta 8"))
+Models_table2
+
+#Best Play Conversion values calculations which are calculated from the log odd estimates in Tables above and displayed in figure 3
+
+#exp(0.81513)/(1+exp(0.81513)) # Short Own 
+#exp(0.5917)/(1+exp(0.5917)) # Short Opp
+#exp(0.01338)/(1+exp(0.01338)) # Medium Own
+#exp(-0.11789)/(1+exp(-0.11789)) # Medium Opp
+#exp(-0.25407)/(1+exp(-0.25407)) # Long Own
+#exp(-0.52982)/(1+exp(-0.52982)) # Long Opp
+```
+
+
+
+```{r,echo=FALSE}
+# 2020 overall 3rd down percentage
+Current_Overall_third_down_eff <- sum(predict_third$SeriesFirstDown) / length(predict_third$play_options)
+
+# 2020 overall 3rd down percentage if the most efficient plays estimated by the model were always used in their respective scenario
+Predicted_Overall_third_down_eff <- (0.6932 * length(Short_Own_predict$play_options) + 0.6438 * length(Short_Opp_predict$play_options)+ 0.5033 * length(Medium_Own_predict$play_options)+ 0.4706 * length(Medium_Opp_predict$play_options) + 0.4368 * length(Long_Own_predict$play_options) + 0.52982 * length(Long_Opp_predict$play_options)) / length(predict_third$play_options)
+
+# Estimated Improvement by using plays from model in the scenarios
+Predicted_Overall_Change <- (0.6932 * length(Short_Own_predict$play_options) + 0.6438 * length(Short_Opp_predict$play_options)+ 0.5033 * length(Medium_Own_predict$play_options)+ 0.4706 * length(Medium_Opp_predict$play_options) + 0.4368 * length(Long_Own_predict$play_options) + 0.52982 * length(Long_Opp_predict$play_options)) / length(predict_third$play_options) - sum(predict_third$SeriesFirstDown) / length(predict_third$play_options)
+
+temp <- tibble(Current_Overall_third_down_eff, Predicted_Overall_third_down_eff, Predicted_Overall_Change)
+kable(temp, caption = "Efficiency Comparison", booktabs = T, col.names = c("2020 Overall Conversion Rate", "Predicted Overall Conversion Rate", "Predicted Overall Increase" ))
+```
+
+```{r,echo= FALSE, out.width = "100%", fig.cap= "Best Model Predicted Play for Third Down Conversion Rate by Scenario"}
+include_graphics("C:/Users/colin/OneDrive/Pictures/Model Prediction Field.png")
+```
+
+```{r, echo=FALSE, out.width = "100%", fig.cap= "Current 2020 NFL Overall Third Down Conversion Rate by Scenario"}
+include_graphics("C:/Users/colin/OneDrive/Pictures/2020 Conversion Rate Field.png")
+```
+
+```{r, echo=FALSE, out.width = "100%", fig.cap= "Predicted Model Increase from 2020 for Third Down Conversion Rate by Scenario" }
+include_graphics("C:/Users/colin/OneDrive/Pictures/2020 Differences Field.png")
+```
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+
+
+After converting from log odds to probability, Figure 3 displays the play type with the highest probability predicted in each of the 6 scenarios. After ratio estimation, Figure 4 shows the estimated results for Equation 3 in each third down efficiency scenario for 2020. Using the highest probability plays, Figure 5 shows the difference between the current 2020 third down percentage, and the percentage predicted by the models if teams were to use only the models' highest probability plays in each scenario. 
+From Using ratio estimation and Table 3, the overall 2020 third down efficiency is 46.54%, with a 95% confidence interval of (45.02%, 48.06%). When using only the best predicted plays, the maximized efficiency for the 2020 NFL season third down efficiency is 56.15%, which is an increase of 9.61%.
+
+
+# Discussion
+## Summary
+
+  To recap, a data set of 11 years of NFL play-by-play data was obtained from nflscrap-R in the interest of evaluating the effect of play choice on third down efficiency (Yurko, 2020). A general model was created to determine the significance of field position, general play type, and distance required to convert. A second, play type specific, model was created and applied to the same data set, as well as 6 scenario subsets of the data that were based on field position and distance required to convert. The play with the highest probability of converting a third down from each scenario was then compared to the current 2020 NFL Season's third down percentage in each scenario. Those plays also were applied to the current 2020 NFL season's overall third down percentage by weighting the best model predicted probabilities of each scenario by the number of times each scenario has occurred in the 2020 season so far to visualize the discrepancy between the current efficiency of the NFL and the model's best predicted efficiency.  
+
+
+## Conclusions:
+## General Model
+  Since every predictor in the General model was significant with p-values less than 2.2*10^-16, the model shows that field position, yards required to convert, and the general play type choice are all significant in changing the log odds, and therefore probability, of converting a third down. The estimate of the field position coefficient indicates that the farther away a team is from the opponent's endzone, the higher the probability that the offense will convert a third down. A possible explanation of this may be that a defense improves as an opposing team approaches their endzone, and may be motivated to play better. The estimate of the yards required to convert coefficient indicates that the more yards that an offense needs to cover in order to convert, the lower their probability of converting a third down. This resonates with common sense and logic that can be derived from the situation. If everything else is held equal, a farther distance of conversion makes it harder than a near distance of conversion. The estimate of the play type coefficient indicates that, in general, a run play results in a higher probability of converting a third down than a pass play. The scenario models allowed for a more in-depth analysis of this finding and to see how play choice affects third down percentage. Using the estimates listed in Table 1 and their significance, listed in Table 2, the log odds and probability of individual play choices can be examined in the following sections.   
+  
+  
+  
+## Third & Short
+  In short situations, run plays up the middle were estimated to be the most successful. They had the highest predicted probability of converting, with a 69.32% chance of converting on the offense's own side of the field and a 64.38% chance on the opponent's side of the field. A running play up the middle in the offense's own territory was the highest probability of success out of all scenarios analyzed. All 3 run plays (Run Right, middle, and left) had higher probability of converting on a third and short than any of the pass plays. However, it must be noted that the deep middle and deep right passes were not significant in either of the field side models. This is likely due to the sample size being too small, making the p-values far beyond the significance threshold of 0.05. All significant play options increased the probability of converting when compared to the intercept, which incorporated that the play option was a pass deep left. Overall in short situations, those where the yards required to convert is 4 or less, it is apparent that using a run play is the best predicted option, and specifically running up the middle is the best play option, regardless of field position. 
+
+
+
+## Third & Medium
+
+  In third and medium situations, those where the yards required to convert was between 5 and 9, passing options had the highest probability of converting. In the offense's own territory, a deep middle pass had the highest predicted probability of conversion, 50.33%. This differed from the opponent's side of the field, where the most likely play to convert was a short middle pass, with a predicted probability of conversion of 47.06%. From Table 1, Run plays had more middling success in medium situations than in short situations. In the opponents side of the field, the 3 run plays had lower probability of conversion than the 3 short passes. However, Table 2 shows that two of the run plays (right and middle) did not have a significant difference in conversion probability from the intercept in the offense's own territory. As well, deep right passes also were not significant on either side of the field for medium situations. Passes to the middle were the dominant strategic choice in medium situations, as the two highest probabilities of conversion were pass deep middle and then pass short middle for the offense's own side, while the best plays for the opponent's side were pass short middle and then pass deep middle. Overall, in medium situations, it is evident that the highest chance of converting starts with passes to the middle, then short passes to the side, and finally run plays are predicted to garner the lowest probability of conversion. 
+  
+
+## Third & Long
+  
+  In third and long situations, those where the yards required to convert was 10 or more, deep passing options had the highest probability of converting. In these scenarios, regardless of field position, all run plays provided the worst predicted probability of conversion. Contrary to the third and short scenarios, a run up the middle became the worst play to run on both sides of the field. Short passes were predicted to be somewhat better than the run plays, but still well short of deep passes. On both sides of the field, deep right passes were not significant, but the notably high p-values indicate that this is likely a result of a small sample size. A deep middle pass was the only option to increase the probability of conversion with respect to the intercept. Passes to the deep middle and deep left were far and away the best predicted plays in third and long scenarios. The probability of converting a third and long in the opponent's territory using a deep middle pass was 37.06%, which was the lowest value out of all highest probability plays in all scenarios. Overall, it is clear that in third and long situations, the best chance of conversion comes from a deep pass, preferably down the middle.  
+
+
+
+## Overall Trends
+  Overall, the trends in the individual scenarios resonated with the trends indicated by the general model. In short, medium, and long scenarios, The probability of conversion of a third down decreased in opponents territory. The probability of conversion also decreased across the scenarios as the yards required to gain increased. For play choice, the most effective play in every scenario was utilizing a play in the middle of the field. Run plays were only significantly more effective in short situations, while pass plays were more effective in all third downs of 5 yards or greater. However, the run plays in short situations had much higher conversion rates than plays in all other scenarios. Outside of third and short situations, a team is approximately equally or more likely to fail to convert than to succeed, even when using the best predicted play. In third and short situations, a team is more likely to successfully convert than to fail, except if the play used is a deep pass for either side of the field.  
+
+  
+
+## 2020 Comparison
+
+  When comparing the model predictions to the 2020 NFL data, we can see that the model values are greater. The greatest increase in predicted probability is in third and long scenarios on both sides of the field. Notably, there is essentially no change between the model predicted values (less than 0.5%) and the 2020 data for conversion probability in the short and medium scenarios on the opponent's side of the field (Figure 5). The teams are not solely running the most effective predicted plays as the model has calculated, so this discrepancy could possibly be because the model is predicting a conversion rate on average, and certain years or scenarios may vary in probability due to chance. Therefore, this means the NFL likely is outperforming previous years in conversion rate in those two scenarios, possibly due to chance. However, the model predicts that the 2020 league conversion rate could improve across all scenarios in the offense's own territory. As well, the overall predicted change in conversion rate is 9.61% (Table 3). This means that if the NFL teams ran the best predicted play for each respective scenario, teams would be predicted to convert about one extra third down every 10 tries, and would push their predicted probability of conversion over 50%, making it now more likely that teams would convert than fail. It is important to note that this is not a causal inference, and should not be taken to be fact, rather as evidence of possible areas of improvement for NFL teams in third down conversion rates.
+
+## Weaknesses
+
+  There are a number of weaknesses in this analysis which could not be accounted for. Firstly, by splitting the data set into more intricate scenarios and play types, a more in-depth level of analysis becomes available, but at the cost of sample size. Some of the scenario and play type combinations were reduced to only a few hundred observations, which will increase bias from outliers and variance in the outcomes. This notably greatly affected the analysis of some of the play types, such as passes to the deep right, where the lack of data likely influenced the p-values of the play type/scenario combinations, and therefore significant inference could not be drawn from them. As well, the number of play options was limited by what has been recorded in the data. More in-depth play combinations and scenarios can not be evaluated because there simply is no data to support them, such as a medium pass depth option, rather than just short or deep options. Finally, this analysis is from the offensive perspective, and relies on estimates of success based solely on what the offense has done. In American Football, a play's success is likely also influenced by the defense and the defensive formation or play that they run.
+  
+  
+## Next Steps
+  In the next steps of this analysis, the impact of offensive and defensive formations on third down conversion may be evaluated by matching scenarios to defensive data, or using offensive formation data. As well, this analysis should be revisited in a number of years later, so that there will be more play-by-play data recorded. More data may allow for more robust analysis of play types, by hopefully reducing the variability of the estimates, and allowing for more scenarios to be evaluated without worry of reducing the sample size to an unusable level.  
+
+
+# Appendix
+
+1. Here is a diagram showing an example of how downs work in the National Football League (Rookie Road Inc., 2020). The yellow line represents the point of conversion. The line of scrimmage is represented by the blue line. In a set of downs, the line of scrimmage can change based on how many yards an offense gains or loses on a play. However, during a set of downs the first down line, or point of conversion, does not change. The yards needed to convert is based on the difference between the line of scrimmage and the first down marker.
+```{r, echo = FALSE, out.width = "100%", , fig.cap= "NFL Set of Downs Example"}
+include_graphics("C:/Users/colin/OneDrive/Pictures/First Down Diagram.png")
+```
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+$~$
+
+
+# References
+
+
+Caetano, S. & Alexander, R., (2020) , Ratio-Estimation-code.R., https://q.utoronto.ca/courses/184060/files/9273773?module_item_id=1852043.
+
+Fox, J. & Weisberg, S., (2019). An {R} Companion to Applied Regression, Third Edition. Thousand Oaks CA: Sage. URL:
+  https://socialsciences.mcmaster.ca/jfox/Books/Companion/
+  
+Kassambara, A., (2020). Ggplot2 add straight lines to a plot : Horizontal, vertical and regression lines. Retrieved December 22, 2020, from 
+  http://www.sthda.com/english/wiki/ggplot2-add-straight-lines-to-a-plot-horizontal-vertical-and-regression-lines
+
+Kassambara, A., (2020). Ggplot2 texts : Add text annotations to a graph in R software. Retrieved December 22, 2020, from
+  http://www.sthda.com/english/wiki/ggplot2-texts-add-text-annotations-to-a-graph-in-r-software
+
+Kassambara, A., (2018). Logistic Regression Assumptions and Diagnostics in R. Retrieved December 22, 2020, from
+  http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/
+  
+Lumley, T., (2020) "survey: analysis of complex survey samples". R package version 4.0.
+
+Oldham, P., (2020). Create your rmarkdown website. Retrieved December 22, 2020, from https://poldham.github.io/minute_website/images.html
+
+R Core Team, (2020). Captions and References. Retrieved December 22, 2020, from https://cran.r-project.org/web/packages/officedown/vignettes/captions.html
+
+Rookie Road Inc., (2020). Football First Down Line. Retrieved December 22, 2020, from https://www.rookieroad.com/football/101/first-down-line/
+
+Wickham et al., (2019). Welcome to the tidyverse. Journal of Open Source Software, 4(43), 1686, https://doi.org/10.21105/joss.01686
+
+Wickham, H., (2016) ggplot2: Elegant Graphics for Data Analysis. Springer-Verlag New York, 2016.
+
+Wickham, H. & Hester, J., (2020). readr: Read Rectangular Text Data. R package version 1.4.0. https://CRAN.R-project.org/package=readr
+
+Willman, D., (2020), 2020 play by play data, Retrieved December 22, 2020, from http://nflsavant.com/about.php
+
+Xie, Y. (2020). Knitr. Retrieved December 22, 2020, from https://www.rdocumentation.org/packages/knitr/versions/1.30/topics/kable
+
+Xie, Y., (2020, November 23). R Markdown Cookbook. Retrieved December 22, 2020, from https://bookdown.org/yihui/rmarkdown-cookbook/figure-size.html
+
+Xie, Y., (2020). knitr: A General-Purpose Package for Dynamic Report Generation in R. R package version 1.29.
+
+Xie, Y., (2020, November 23). R Markdown Cookbook. Retrieved December 22, 2020, from https://bookdown.org/yihui/rmarkdown-cookbook/kable.html
+
+Yurko, R., (2019), nflscrapR- data repository, Retrieved December 22, 2020, from https://github.com/ryurko/nflscrapR-data 
+
+Zhu, H., (2020). Create Awesome LaTeX Table with knitr::kable and kableExtra. Retrieved December 22, 2020, from https://haozhu233.github.io/kableExtra/awesome_table_in_pdf.pdf
+
